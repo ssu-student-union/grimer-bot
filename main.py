@@ -40,7 +40,7 @@ def self_ping():
             logging.info(f"✅ Self-ping 응답 상태: {response.status_code}")
         except Exception as e:
             logging.warning(f"⚠️ Self-ping 실패: {e}")
-        time.sleep(300)
+        time.sleep(180)
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()
