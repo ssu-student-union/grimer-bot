@@ -1,4 +1,3 @@
-# main.py
 import os
 import logging
 import threading
@@ -25,7 +24,8 @@ def health():
     return "OK", 200
 
 def run_flask():
-    app.run(host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 10000)) 
+    app.run(host="0.0.0.0", port=port)
 
 def self_ping():
     if not koyeb_url:
@@ -34,7 +34,7 @@ def self_ping():
     while True:
         try:
             logging.info("🔄 Self-ping 요청 중...")
-            requests.get(koyeb_url, timeout=10)
+            requests.get(f"{koyeb_url}/health", timeout=10)
         except Exception as e:
             logging.warning(f"⚠️ Self-ping 실패: {e}")
         time.sleep(300)
