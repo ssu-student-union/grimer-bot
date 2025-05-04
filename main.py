@@ -31,10 +31,13 @@ def self_ping():
     if not koyeb_url:
         logging.warning("❌ KOYEB_APP_URL 환경변수가 비어있습니다. Self Ping이 작동하지 않습니다.")
         return
+    time.sleep(10)  # Flask 서버가 먼저 올라올 수 있게 약간 대기
     while True:
         try:
-            logging.info("🔄 Self-ping 요청 중...")
-            requests.get(f"{koyeb_url}/health", timeout=10)
+            url = f"{koyeb_url.rstrip('/')}/health"
+            logging.info(f"🔄 Self-ping 요청 중... → {url}")
+            response = requests.get(url, timeout=10)
+            logging.info(f"✅ Self-ping 응답 상태: {response.status_code}")
         except Exception as e:
             logging.warning(f"⚠️ Self-ping 실패: {e}")
         time.sleep(300)
