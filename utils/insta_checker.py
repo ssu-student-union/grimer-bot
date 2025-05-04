@@ -13,12 +13,16 @@ INSTAGRAM_USERNAME = os.getenv("TARGET_INSTAGRAM_ACCOUNT")
 LATEST_POST_FILE = "storage/latest_post.json"
 SESSION_FILE = "storage/session.json"
 
-_first_run = not os.path.exists(LATEST_POST_FILE)
-
 def load_last_post():
     if os.path.exists(LATEST_POST_FILE):
-        with open(LATEST_POST_FILE, "r") as f:
-            return json.load(f).get("shortcode")
+        try:
+            with open(LATEST_POST_FILE, "r") as f:
+                data = json.load(f)
+                shortcode = data.get("shortcode")
+                if shortcode:
+                    return shortcode
+        except json.JSONDecodeError:
+            logging.warning("⚠️ latest_post.json 파싱 실패")
     return None
 
 def save_last_post(shortcode):
@@ -54,23 +58,26 @@ def check_new_post():
 
         media = medias[0]
         shortcode = media.code
+        is_first_run = not os.path.exists(LATEST_POST_FILE)
         last_shortcode = load_last_post()
 
-        # ✅ 최초 실행이면 저장만 하고 아무 작업도 안 함
-        if last_shortcode is None:
+        # ✅ 최초 실행이면 저장만 하고 전송 안 함
+        if is_first_run or last_shortcode is None:
             logging.info(f"🆕 최초 실행 - 게시물 저장만 수행됨: {shortcode}")
             save_last_post(shortcode)
             return None
 
         if last_shortcode == shortcode:
-            return None
+            return None  # 새 게시물 아님
 
+        # 🔹 게시물 내용 추출
         content = media.caption_text or ""
         lines = [line.strip() for line in content.splitlines() if line.strip()]
         title = lines[0] if lines else "제목 없음"
         title = title[:50] if len(title) > 50 else title
         full_content = "\n".join(lines[1:]) if len(lines) > 1 else ""
 
+        # 🔹 이미지 처리
         image_urls = []
         if media.thumbnail_url:
             image_urls.append(media.thumbnail_url)
@@ -84,6 +91,7 @@ def check_new_post():
                 file_ids = [f["id"] for f in result.get("postFiles", [])]
                 thumbnail_url = result.get("thumbnailUrl")
 
+        # 🔹 공지 데이터 생성
         post_data = {
             "title": title,
             "content": full_content,
