@@ -5,7 +5,7 @@ import asyncio
 import aiohttp
 from aiohttp import web
 from dotenv import load_dotenv
-from bot import bot
+from discord_bot.bot import bot
 
 load_dotenv()
 KOYEB_URL = os.getenv("KOYEB_APP_URL")
