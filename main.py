@@ -1,50 +1,45 @@
+# main.py
 import os
 import logging
-import threading
-import time
-import requests
-from flask import Flask
+import asyncio
+import aiohttp
+from aiohttp import web
 from dotenv import load_dotenv
-from discord_bot.bot import run_bot
+from bot import bot
 
 load_dotenv()
-logging.basicConfig(level=logging.INFO)
+KOYEB_URL = os.getenv("KOYEB_APP_URL")
+DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
-token = os.getenv("DISCORD_BOT_TOKEN")
-koyeb_url = os.getenv("KOYEB_APP_URL")
+async def health_check(request):
+    return web.Response(text="OK", status=200)
 
-app = Flask(__name__)
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get("/health", health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", 8000)
+    await site.start()
 
-@app.route("/")
-def home():
-    return "✅ Grimer bot is alive with Flask + Discord + Instagram"
-
-@app.route("/health")
-def health():
-    return "OK", 200
-
-def run_flask():
-    port = int(os.environ.get("PORT", 8000)) 
-    app.run(host="0.0.0.0", port=port)
-
-def self_ping():
-    if not koyeb_url:
+async def ping_self():
+    await bot.wait_until_ready()
+    if not KOYEB_URL:
         logging.warning("❌ KOYEB_APP_URL 환경변수가 비어있습니다. Self Ping이 작동하지 않습니다.")
         return
-    time.sleep(10)  
-    while True:
+    while not bot.is_closed():
         try:
-            url = f"{koyeb_url.rstrip('/')}/health"
-            logging.info(f"🔄 Self-ping 요청 중... → {url}")
-            response = requests.get(url, timeout=10)
-            logging.info(f"✅ Self-ping 응답 상태: {response.status_code}")
+            async with aiohttp.ClientSession() as s:
+                url = f"{KOYEB_URL.rstrip('/')}/health"
+                logging.info(f"🔄 Self-ping 요청 중... → {url}")
+                async with s.get(url) as response:
+                    logging.info(f"✅ Self-ping 응답 상태: {response.status}")
         except Exception as e:
             logging.warning(f"⚠️ Self-ping 실패: {e}")
-            time.sleep(5)
-            continue 
-        time.sleep(180)
+        await asyncio.sleep(180)
 
 if __name__ == "__main__":
-    threading.Thread(target=run_flask, daemon=True).start()
-    threading.Thread(target=self_ping, daemon=True).start()
-    run_bot(token)
+    logging.basicConfig(level=logging.INFO)
+    bot.loop.create_task(start_web_server())
+    bot.loop.create_task(ping_self())
+    bot.run(DISCORD_TOKEN)
