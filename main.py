@@ -5,7 +5,7 @@ import asyncio
 import aiohttp
 from aiohttp import web
 from dotenv import load_dotenv
-from discord_bot.bot import bot
+from discord_bot.bot import bot  
 
 load_dotenv()
 KOYEB_URL = os.getenv("KOYEB_APP_URL")
@@ -38,8 +38,11 @@ async def ping_self():
             logging.warning(f"⚠️ Self-ping 실패: {e}")
         await asyncio.sleep(180)
 
-if __name__ == "__main__":
+async def main():
     logging.basicConfig(level=logging.INFO)
-    bot.loop.create_task(start_web_server())
-    bot.loop.create_task(ping_self())
-    bot.run(DISCORD_TOKEN)
+    asyncio.create_task(start_web_server())
+    asyncio.create_task(ping_self())
+    await bot.start(DISCORD_TOKEN)
+
+if __name__ == "__main__":
+    asyncio.run(main())
