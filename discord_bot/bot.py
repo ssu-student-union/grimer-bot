@@ -17,7 +17,6 @@ TARGET_CHANNEL_ID = int(os.getenv("TARGET_CHANNEL_ID", 0))
 @bot.event
 async def on_ready():
     logging.info(f"✅ Discord 봇 로그인 성공: {bot.user}")
-    await bot.loop.run_in_executor(None, insta_checker.init_cache)
     try:
         logging.info("🔍 첫 게시물 확인 시작")
         new_post = await bot.loop.run_in_executor(None, insta_checker.check_new_post)
