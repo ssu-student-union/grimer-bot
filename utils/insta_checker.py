@@ -31,21 +31,26 @@ def save_last_post(shortcode):
 
 def get_instagram_client():
     cl = Client()
+
     if os.path.exists(SESSION_FILE):
-        cl.load_settings(SESSION_FILE)
         try:
-            cl.login(INSTAGRAM_ID, INSTAGRAM_PW)
-        except Exception:
-            logging.warning("⚠️ 세션 로그인 실패, 재로그인 시도 중...")
-            cl.set_locale("ko_KR")
-            cl.set_country("KR")
-            cl.set_timezone_offset(32400)
-            cl.login(INSTAGRAM_ID, INSTAGRAM_PW)
-            cl.dump_settings(SESSION_FILE)
-    else:
+            cl.load_settings(SESSION_FILE)
+            cl.get_timeline_feed()
+            logging.info("✅ 세션 복원 성공 (로그인 생략)")
+            return cl
+        except Exception as e:
+            logging.warning(f"⚠️ 세션 무효. 재로그인 시도: {e}")
+    try:
+        cl.set_locale("ko_KR")
+        cl.set_country("KR")
+        cl.set_timezone_offset(32400)
         cl.login(INSTAGRAM_ID, INSTAGRAM_PW)
         cl.dump_settings(SESSION_FILE)
-    return cl
+        logging.info("🔐 로그인 성공 및 세션 저장 완료")
+        return cl
+    except Exception as e:
+        logging.error(f"❌ 인스타그램 로그인 실패: {e}")
+        raise
 
 def check_new_post():
     try:
