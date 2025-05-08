@@ -1,4 +1,3 @@
-# bot.py
 import os
 import logging
 import discord
@@ -13,6 +12,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 TARGET_CHANNEL_ID = int(os.getenv("TARGET_CHANNEL_ID", 0))
+COUNSIL_URL = os.getenv("COUNSIL_URL", "")
 
 @bot.event
 async def on_ready():
@@ -58,12 +58,18 @@ async def send_post_message(destination, post):
     title = post.get("title", "제목 없음")
     content = post.get("content", "")
     images = post.get("images", [])
+    post_id = post.get("post_id")
+
     if content.startswith(title):
         content = content[len(title):].lstrip("\n")
-    text = f"""✨ **신규 인스타그램 공지사항 업로드**\n\n**제목:** {title}\n**본문:**\n{content}\n\n🔗 링크: {post.get('post_url')}"""
+
+    text = f"""✨ **신규 인스타그램 공지사항 업로드**\n\n**제목:** {title}\n**본문:**\n{content}\n\n🔗 인스타그램: {post.get('post_url')}"""
+
+    if post_id and COUNSIL_URL:
+        text += f"\n📌 총홈: {COUNSIL_URL.rstrip('/')}/{post_id}"
+
     await destination.send(text)
     for img in images:
         await destination.send(img)
 
-# bot 인스턴스를 가져가기 위한 export
 __all__ = ["bot"]

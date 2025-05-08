@@ -4,6 +4,7 @@ import logging
 from instagrapi import Client
 from dotenv import load_dotenv
 from api import login, post_notice, post_file
+import re
 
 load_dotenv()
 
@@ -12,6 +13,9 @@ INSTAGRAM_PW = os.getenv("INSTAGRAM_PW")
 INSTAGRAM_USERNAME = os.getenv("TARGET_INSTAGRAM_ACCOUNT")
 LATEST_POST_FILE = "storage/latest_post.json"
 SESSION_FILE = "storage/session.json"
+
+def sanitize_text(text: str) -> str:
+    return re.sub(r"[\\*_`~>|#]", "", text)
 
 def load_last_post():
     if os.path.exists(LATEST_POST_FILE):
@@ -66,23 +70,23 @@ def check_new_post():
         is_first_run = not os.path.exists(LATEST_POST_FILE)
         last_shortcode = load_last_post()
 
-        # ✅ 최초 실행이면 저장만 하고 전송 안 함
         if is_first_run or last_shortcode is None:
             logging.info(f"🆕 최초 실행 - 게시물 저장만 수행됨: {shortcode}")
             save_last_post(shortcode)
             return None
 
         if last_shortcode == shortcode:
-            return None  # 새 게시물 아님
+            return None
 
-        # 🔹 게시물 내용 추출
         content = media.caption_text or ""
         lines = [line.strip() for line in content.splitlines() if line.strip()]
         title = lines[0] if lines else "제목 없음"
         title = title[:50] if len(title) > 50 else title
         full_content = "\n".join(lines[1:]) if len(lines) > 1 else ""
+        full_content = sanitize_text(full_content)
 
-        # 🔹 이미지 처리
+        logging.info(f"📦 전송될 공지 content:\n{full_content}")
+
         image_urls = []
         if media.thumbnail_url:
             image_urls.append(media.thumbnail_url)
@@ -96,7 +100,6 @@ def check_new_post():
                 file_ids = [f["id"] for f in result.get("postFiles", [])]
                 thumbnail_url = result.get("thumbnailUrl")
 
-        # 🔹 공지 데이터 생성
         post_data = {
             "title": title,
             "content": full_content,
@@ -111,11 +114,15 @@ def check_new_post():
         if resp and resp.status_code == 200:
             save_last_post(shortcode)
 
+        post_id = resp.json().get("post_Id") if resp else None
+        logging.info(f"🆔 post_id 확인: {post_id}")
+
         return {
             "title": title,
             "content": full_content,
             "post_url": f"https://www.instagram.com/p/{shortcode}/",
-            "images": image_urls
+            "images": image_urls,
+            "post_id": post_id,
         }
 
     except Exception as e:
