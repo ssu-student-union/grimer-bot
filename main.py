@@ -3,11 +3,10 @@ import logging
 import asyncio
 import aiohttp
 from aiohttp import web
+from dotenv import load_dotenv
 from discord_bot.bot import bot  
 
-from dotenv import load_dotenv
 load_dotenv()
-
 KOYEB_URL = os.getenv("KOYEB_APP_URL")
 DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 
@@ -24,15 +23,17 @@ async def start_web_server():
 
 async def ping_self():
     await bot.wait_until_ready()
+    if not KOYEB_URL:
+        return
     while not bot.is_closed():
         try:
-            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as s:
-                url = os.getenv("KOYEB_APP_URL", "").rstrip("/") + "/health"
-                async with s.get(url) as res:
-                    logging.info(f"🔁 Self Ping 응답: {res.status}")
-        except Exception as e:
-            logging.warning(f"⚠️ Self Ping 실패: {e}")
-        await asyncio.sleep(180)  # 3분마다 ping
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=3)) as s:
+                url = KOYEB_URL.rstrip("/") + "/health"
+                async with s.get(url):
+                    pass
+        except:
+            pass
+        await asyncio.sleep(60)
 
 async def main():
     logging.basicConfig(level=logging.INFO)

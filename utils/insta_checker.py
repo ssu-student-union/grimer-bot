@@ -1,6 +1,5 @@
 import os
 import json
-import logging
 import re
 from instagrapi import Client
 from dotenv import load_dotenv
@@ -23,10 +22,9 @@ def load_last_post():
     if os.path.exists(LATEST_POST_FILE):
         try:
             with open(LATEST_POST_FILE, "r") as f:
-                data = json.load(f)
-                return data.get("shortcode")
-        except json.JSONDecodeError:
-            logging.warning("⚠️ latest_post.json 파싱 실패")
+                return json.load(f).get("shortcode")
+        except:
+            return None
     return None
 
 def save_last_post(shortcode):
@@ -39,21 +37,15 @@ def get_instagram_client():
         try:
             cl.load_settings(SESSION_FILE)
             cl.get_timeline_feed()
-            logging.info("✅ 세션 복원 성공 (로그인 생략)")
             return cl
-        except Exception as e:
-            logging.warning(f"⚠️ 세션 무효. 재로그인 시도: {e}")
-    try:
-        cl.set_locale("ko_KR")
-        cl.set_country("KR")
-        cl.set_timezone_offset(32400)
-        cl.login(INSTAGRAM_ID, INSTAGRAM_PW)
-        cl.dump_settings(SESSION_FILE)
-        logging.info("🔐 로그인 성공 및 세션 저장 완료")
-        return cl
-    except Exception as e:
-        logging.error(f"❌ 인스타그램 로그인 실패: {e}")
-        raise
+        except:
+            pass
+    cl.set_locale("ko_KR")
+    cl.set_country("KR")
+    cl.set_timezone_offset(32400)
+    cl.login(INSTAGRAM_ID, INSTAGRAM_PW)
+    cl.dump_settings(SESSION_FILE)
+    return cl
 
 def check_new_post():
     try:
@@ -67,22 +59,17 @@ def check_new_post():
         media = medias[0]
         shortcode = media.code
         last_shortcode = load_last_post()
-        is_first_run = last_shortcode is None
-
-        if is_first_run:
-            logging.info(f"🆕 최초 실행 - 게시물 저장만 수행됨: {shortcode}")
-            save_last_post(shortcode)
+        if last_shortcode == shortcode:
             return None
 
-        if last_shortcode == shortcode:
+        if last_shortcode is None:
+            save_last_post(shortcode)
             return None
 
         content = media.caption_text or ""
         lines = [line.strip() for line in content.splitlines() if line.strip()]
         title = lines[0] if lines else "제목 없음"
         full_content = sanitize_text("\n".join(lines[1:])) if len(lines) > 1 else ""
-
-        logging.info("📦 전송될 공지 content:\n" + full_content)
 
         image_urls = []
         if media.thumbnail_url:
@@ -108,13 +95,7 @@ def check_new_post():
         }
 
         resp = post_notice.upload_instagram_post(post_data)
-        if resp:
-            logging.info(f"📤 응답 status: {resp.status_code}")
-            logging.info(f"📤 응답 body: {resp.text}")
-
         post_id = resp.json().get("data", {}).get("post_id") if resp else None
-        logging.info(f"🆔 post_id 확인: {post_id}")
-
         if resp and resp.status_code == 200:
             save_last_post(shortcode)
 
@@ -127,5 +108,4 @@ def check_new_post():
         }
 
     except Exception as e:
-        logging.error(f"Instagram 크롤링 오류: {e}")
         return {"error": str(e)}
