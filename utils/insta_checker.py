@@ -17,7 +17,7 @@ SESSION_FILE = "storage/session.json"
 def sanitize_text(text: str) -> str:
     text = re.sub(r"[\\*_`~>|#]", "", text)
     text = re.sub(r"(?m)^\s*-\s*$", "—", text)  
-    return "\n.\n" + text 
+    return text 
 
 def load_last_post():
     if os.path.exists(LATEST_POST_FILE):
