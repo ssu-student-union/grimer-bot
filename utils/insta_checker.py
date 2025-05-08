@@ -1,4 +1,3 @@
-# insta_checker.py
 import os
 import json
 import logging
@@ -16,7 +15,9 @@ LATEST_POST_FILE = "storage/latest_post.json"
 SESSION_FILE = "storage/session.json"
 
 def sanitize_text(text: str) -> str:
-    return re.sub(r"[\\*_`~>|#]", "", text)
+    text = re.sub(r"[\\*_`~>|#]", "", text)
+    text = re.sub(r"(?m)^\s*-\s*$", "—", text)  
+    return "\n.\n" + text 
 
 def load_last_post():
     if os.path.exists(LATEST_POST_FILE):
@@ -110,7 +111,8 @@ def check_new_post():
         if resp:
             logging.info(f"📤 응답 status: {resp.status_code}")
             logging.info(f"📤 응답 body: {resp.text}")
-        post_id = resp.json().get("post_Id") if resp else None
+
+        post_id = resp.json().get("data", {}).get("post_id") if resp else None
         logging.info(f"🆔 post_id 확인: {post_id}")
 
         if resp and resp.status_code == 200:
