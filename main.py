@@ -24,19 +24,15 @@ async def start_web_server():
 
 async def ping_self():
     await bot.wait_until_ready()
-    if not KOYEB_URL:
-        logging.warning("❌ KOYEB_APP_URL 환경변수가 비어있습니다. Self Ping이 작동하지 않습니다.")
-        return
     while not bot.is_closed():
         try:
-            async with aiohttp.ClientSession() as s:
-                url = f"{KOYEB_URL.rstrip('/')}/health"
-                logging.info(f"🔄 Self-ping 요청 중... → {url}")
-                async with s.get(url) as response:
-                    logging.info(f"✅ Self-ping 응답 상태: {response.status}")
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5)) as s:
+                url = os.getenv("KOYEB_APP_URL", "").rstrip("/") + "/health"
+                async with s.get(url) as res:
+                    logging.info(f"🔁 Self Ping 응답: {res.status}")
         except Exception as e:
-            logging.warning(f"⚠️ Self-ping 실패: {e}")
-        await asyncio.sleep(180)
+            logging.warning(f"⚠️ Self Ping 실패: {e}")
+        await asyncio.sleep(180)  # 3분마다 ping
 
 async def main():
     logging.basicConfig(level=logging.INFO)
