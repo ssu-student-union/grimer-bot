@@ -1,10 +1,11 @@
+# === insta_checker.py ===
 import os
 import json
 import logging
+import re
 from instagrapi import Client
 from dotenv import load_dotenv
 from api import login, post_notice, post_file
-import re
 
 load_dotenv()
 
@@ -81,11 +82,10 @@ def check_new_post():
         content = media.caption_text or ""
         lines = [line.strip() for line in content.splitlines() if line.strip()]
         title = lines[0] if lines else "제목 없음"
-        title = title[:50] if len(title) > 50 else title
-        full_content = "\n".join(lines[1:]) if len(lines) > 1 else ""
-        full_content = sanitize_text(full_content)
+        body_lines = lines[1:] if len(lines) > 1 else []
+        full_content = sanitize_text("\n".join(body_lines))
 
-        logging.info(f"📦 전송될 공지 content:\n{full_content}")
+        logging.info("📦 전송될 공지 content:\n" + full_content)
 
         image_urls = []
         if media.thumbnail_url:
@@ -107,15 +107,15 @@ def check_new_post():
             "memberCode": login.get_member_name(),
             "thumbNailImage": thumbnail_url,
             "isNotice": False,
-            "postFileList": file_ids
+            "postFileList": file_ids,
         }
 
         resp = post_notice.upload_instagram_post(post_data)
-        if resp and resp.status_code == 200:
-            save_last_post(shortcode)
-
         post_id = resp.json().get("post_Id") if resp else None
         logging.info(f"🆔 post_id 확인: {post_id}")
+
+        if resp and resp.status_code == 200:
+            save_last_post(shortcode)
 
         return {
             "title": title,

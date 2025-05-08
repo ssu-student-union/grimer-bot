@@ -1,3 +1,4 @@
+# === bot.py ===
 import os
 import logging
 import discord
@@ -43,6 +44,16 @@ async def monitor_instagram():
             logging.info("🛌 새 게시물 없음")
     except Exception as e:
         logging.error(f"❌ monitor_instagram 루프 오류: {e}")
+
+@bot.command(name="insta_check")
+async def insta_check(ctx):
+    logging.info("📥 insta_check 명령어 수신. 즉시 확인 시도 중...")
+    new_post = await bot.loop.run_in_executor(None, insta_checker.check_new_post)
+    if new_post:
+        logging.info(f"📸 insta_check로 확인된 게시물: {new_post.get('title')}")
+        await send_post_message(ctx.channel, new_post)
+    else:
+        await ctx.send("🛌 새 게시물이 없습니다.")
 
 async def get_target_channel():
     if TARGET_CHANNEL_ID:
