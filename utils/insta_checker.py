@@ -1,4 +1,3 @@
-# === insta_checker.py ===
 import os
 import json
 import logging
@@ -23,9 +22,7 @@ def load_last_post():
         try:
             with open(LATEST_POST_FILE, "r") as f:
                 data = json.load(f)
-                shortcode = data.get("shortcode")
-                if shortcode:
-                    return shortcode
+                return data.get("shortcode")
         except json.JSONDecodeError:
             logging.warning("⚠️ latest_post.json 파싱 실패")
     return None
@@ -36,7 +33,6 @@ def save_last_post(shortcode):
 
 def get_instagram_client():
     cl = Client()
-
     if os.path.exists(SESSION_FILE):
         try:
             cl.load_settings(SESSION_FILE)
@@ -68,10 +64,10 @@ def check_new_post():
 
         media = medias[0]
         shortcode = media.code
-        is_first_run = not os.path.exists(LATEST_POST_FILE)
         last_shortcode = load_last_post()
+        is_first_run = last_shortcode is None
 
-        if is_first_run or last_shortcode is None:
+        if is_first_run:
             logging.info(f"🆕 최초 실행 - 게시물 저장만 수행됨: {shortcode}")
             save_last_post(shortcode)
             return None
@@ -82,8 +78,7 @@ def check_new_post():
         content = media.caption_text or ""
         lines = [line.strip() for line in content.splitlines() if line.strip()]
         title = lines[0] if lines else "제목 없음"
-        body_lines = lines[1:] if len(lines) > 1 else []
-        full_content = sanitize_text("\n".join(body_lines))
+        full_content = sanitize_text("\n".join(lines[1:])) if len(lines) > 1 else ""
 
         logging.info("📦 전송될 공지 content:\n" + full_content)
 
