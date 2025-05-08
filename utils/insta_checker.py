@@ -15,8 +15,8 @@ SESSION_FILE = "storage/session.json"
 
 def sanitize_text(text: str) -> str:
     text = re.sub(r"[\\*_`~>|#]", "", text)
-    text = re.sub(r"(?m)^\s*-\s*$", "—", text)  
-    return text 
+    text = re.sub(r"(?m)^\s*-\s*$", "—", text)
+    return text
 
 def load_last_post():
     if os.path.exists(LATEST_POST_FILE):
@@ -67,9 +67,17 @@ def check_new_post():
             return None
 
         content = media.caption_text or ""
-        lines = [line.strip() for line in content.splitlines() if line.strip()]
-        title = lines[0] if lines else "제목 없음"
-        full_content = sanitize_text("\n".join(lines[1:])) if len(lines) > 1 else ""
+        lines = content.splitlines()
+
+        title = lines[0].strip() if lines else "제목 없음"
+
+        # 제목 다음 줄이 공백이면 건너뜀
+        if len(lines) > 1 and lines[1].strip() == "":
+            body_lines = lines[2:]
+        else:
+            body_lines = lines[1:]
+
+        full_content = sanitize_text("\n".join(body_lines))
 
         image_urls = []
         if media.thumbnail_url:
