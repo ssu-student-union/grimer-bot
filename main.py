@@ -4,10 +4,11 @@ import logging
 import asyncio
 import aiohttp
 from aiohttp import web
-from dotenv import load_dotenv
 from discord_bot.bot import bot  
 
+from dotenv import load_dotenv
 load_dotenv()
+
 KOYEB_URL = os.getenv("KOYEB_APP_URL")
 DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 

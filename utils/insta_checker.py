@@ -1,3 +1,4 @@
+# insta_checker.py
 import os
 import json
 import logging
@@ -106,6 +107,9 @@ def check_new_post():
         }
 
         resp = post_notice.upload_instagram_post(post_data)
+        if resp:
+            logging.info(f"📤 응답 status: {resp.status_code}")
+            logging.info(f"📤 응답 body: {resp.text}")
         post_id = resp.json().get("post_Id") if resp else None
         logging.info(f"🆔 post_id 확인: {post_id}")
 

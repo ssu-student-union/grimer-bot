@@ -1,6 +1,9 @@
+# bot.py
 import os
 import logging
 import discord
+import aiohttp
+import asyncio
 from discord.ext import commands, tasks
 from utils import insta_checker
 from dotenv import load_dotenv
@@ -13,6 +16,15 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 TARGET_CHANNEL_ID = int(os.getenv("TARGET_CHANNEL_ID", 0))
 COUNSIL_URL = os.getenv("COUNSIL_URL", "")
+
+async def ping_self_once():
+    url = os.getenv("KOYEB_APP_URL", "").rstrip("/") + "/health"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                logging.info(f"🔁 (즉시 ping) Self-ping 응답: {response.status}")
+    except Exception as e:
+        logging.warning(f"⚠️ (즉시 ping) Self-ping 실패: {e}")
 
 @bot.event
 async def on_ready():
@@ -43,6 +55,8 @@ async def monitor_instagram():
             logging.info("🛌 새 게시물 없음")
     except Exception as e:
         logging.error(f"❌ monitor_instagram 루프 오류: {e}")
+    finally:
+        await ping_self_once()
 
 @bot.command(name="insta_check")
 async def insta_check(ctx):
@@ -53,6 +67,7 @@ async def insta_check(ctx):
         await send_post_message(ctx.channel, new_post)
     else:
         await ctx.send("🛌 새 게시물이 없습니다.")
+    await ping_self_once()
 
 async def get_target_channel():
     if TARGET_CHANNEL_ID:
