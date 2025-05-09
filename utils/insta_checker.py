@@ -32,27 +32,48 @@ def save_last_post(shortcode):
         json.dump({"shortcode": shortcode}, f)
 
 def get_instagram_client():
+    from instagrapi.exceptions import LoginRequired, PleaseWaitFewMinutes, ChallengeRequired
+    import logging
+
     cl = Client()
     cl.set_locale("ko_KR")
     cl.set_country("KR")
     cl.set_timezone_offset(32400)
 
     def login_and_save():
-        cl.login(INSTAGRAM_ID, INSTAGRAM_PW)
-        cl.dump_settings(SESSION_FILE)
-        return cl
+        try:
+            cl.login(INSTAGRAM_ID, INSTAGRAM_PW)
+            cl.dump_settings(SESSION_FILE)
+            logging.info("✅ 인스타그램 로그인 성공 및 세션 저장됨")
+            return cl
+        except ChallengeRequired:
+            logging.warning("🔐 ChallengeRequired: 이메일이나 SMS 인증이 필요합니다.")
+            cl.challenge_resolve(choice=1)  # 1: 이메일
+            code = input("📧 이메일로 전송된 인증 코드를 입력하세요: ")
+            cl.challenge_send_security_code(code)
+            cl.dump_settings(SESSION_FILE)
+            return cl
+        except PleaseWaitFewMinutes:
+            raise RuntimeError("❌ Instagram이 과도한 요청을 감지했습니다. 잠시 후 다시 시도하세요.")
+        except Exception as e:
+            raise RuntimeError(f"❌ 로그인 실패: {e}")
 
     if os.path.exists(SESSION_FILE):
         try:
             cl.load_settings(SESSION_FILE)
-            cl.get_timeline_feed() 
+            cl.get_timeline_feed()
+            logging.info("✅ 세션 로딩 및 검증 성공")
             return cl
+        except LoginRequired:
+            logging.warning("⚠️ 세션 만료: login_required → 재로그인 시도")
+            os.remove(SESSION_FILE)
+            return login_and_save()
         except Exception as e:
-            import logging
-            logging.warning(f"❌ 세션 무효, 재로그인 시도: {e}")
-            os.remove(SESSION_FILE)  
-
-    return login_and_save()
+            logging.warning(f"⚠️ 세션 불완전: {e} → 재로그인 시도")
+            os.remove(SESSION_FILE)
+            return login_and_save()
+    else:
+        return login_and_save()
 
 def check_new_post():
     try:
