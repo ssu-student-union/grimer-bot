@@ -1,5 +1,3 @@
-# post_file.py - 이미지 업로드 요청
-
 import requests
 import logging
 import os
@@ -24,15 +22,13 @@ def upload_images(image_urls):
         return None
 
     try:
-        token = login.get_token()
-        headers = {"Authorization": f"Bearer {token}"}
-        upload_url = f"{API_URL}/board/공지사항게시판/files"
-        response = requests.post(upload_url, headers=headers, files=images)
+        upload_url_path = "/board/공지사항게시판/files"
+        response = login.request_with_auth("POST", upload_url_path, files=images)
 
-        if response.status_code == 200:
+        if response and response.status_code == 200:
             return response.json().get("data", {})
         else:
-            logging.error(f"파일 업로드 실패: {response.status_code}")
+            logging.error(f"파일 업로드 실패: {response.status_code if response else '응답 없음'}")
     except Exception as e:
         logging.error(f"파일 업로드 중 오류: {e}")
 
