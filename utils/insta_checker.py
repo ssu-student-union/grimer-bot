@@ -33,19 +33,26 @@ def save_last_post(shortcode):
 
 def get_instagram_client():
     cl = Client()
-    if os.path.exists(SESSION_FILE):
-        try:
-            cl.load_settings(SESSION_FILE)
-            cl.get_timeline_feed()
-            return cl
-        except:
-            pass
     cl.set_locale("ko_KR")
     cl.set_country("KR")
     cl.set_timezone_offset(32400)
-    cl.login(INSTAGRAM_ID, INSTAGRAM_PW)
-    cl.dump_settings(SESSION_FILE)
-    return cl
+
+    def login_and_save():
+        cl.login(INSTAGRAM_ID, INSTAGRAM_PW)
+        cl.dump_settings(SESSION_FILE)
+        return cl
+
+    if os.path.exists(SESSION_FILE):
+        try:
+            cl.load_settings(SESSION_FILE)
+            cl.get_timeline_feed() 
+            return cl
+        except Exception as e:
+            import logging
+            logging.warning(f"❌ 세션 무효, 재로그인 시도: {e}")
+            os.remove(SESSION_FILE)  
+
+    return login_and_save()
 
 def check_new_post():
     try:
